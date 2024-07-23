@@ -1,9 +1,7 @@
+import subprocess
 from PIL import Image, ImageDraw, ImageFont
-import win32print
-import win32ui
-from PIL import ImageWin
 
-def create_and_print_image(counts, items, table_number, printer_name = None):
+def create_image(counts, items, table_number, output_path):
     # Create an image with white background
     img = Image.new('RGB', (400, 300), color='white')
     d = ImageDraw.Draw(img)
@@ -23,29 +21,31 @@ def create_and_print_image(counts, items, table_number, printer_name = None):
         d.text((10, y_text), f"{item}: {count}", fill='black', font=font)
         y_text += 30
 
-    
-    if not printer_name:
-        printer_name = win32print.GetDefaultPrinter()
+    # Save the image
+    img.save(output_path)
 
-    # Open the printer
-    hprinter = win32print.OpenPrinter(printer_name)
-    hdc = win32ui.CreateDC("WINSPOOL", printer_name, None)
-
-    # Create a device context from a file handle
-    hdc.StartDoc("Printing Image")
-    hdc.StartPage()
-
-    # Convert the PIL image to a format suitable for printing
-    dib = ImageWin.Dib(img)
-    dib.draw(hdc.GetHandleOutput(), (0, 0, img.size[0], img.size[1]))
-
-    hdc.EndPage()
-    hdc.EndDoc()
-    hdc.DeleteDC()
+def print_image(image_path, printer_name):
+    try:
+        # Print the image using PrintUIEntry
+        subprocess.run([
+            'rundll32', 'printui.dll,PrintUIEntry',
+            '/y',  # Set the printer as default
+            f'/n{printer_name}'
+        ], check=True)
+        
+        # Open the image with mspaint and print to the default printer
+        subprocess.run(['mspaint', '/pt', image_path], check=True)
+        
+        print(f"Sent {image_path} to the printer {printer_name}")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to print {image_path}: {e}")
 
 # Example usage
 counts = [3, 1, 2]
 items = ["Pizza", "Coke", "Salad"]
 table_number = 5
-printer_name = 'table_order.png'
-create_and_print_image(counts, items, table_number, printer_name)
+output_path = 'table_order.png'
+create_image(counts, items, table_number, output_path)
+
+printer_name = 'POS-80C'  # Replace with your actual printer name
+print_image(output_path, printer_name)
