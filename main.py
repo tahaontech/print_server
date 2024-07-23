@@ -12,15 +12,16 @@ def create_image(counts, items, table_number, output_path):
 
     # Set up fonts
     try:
-        font = ImageFont.truetype("arial.ttf", 48)
+        font = ImageFont.truetype("Vazirmatn-Regular.ttf", 48)
     except IOError:
         font = ImageFont.load_default()
 
     # Add table number
-    d.text((10, 10), f"Table Number: {table_number}", fill='black', font=font)
+    d.text((100, 10), f"کافه هنر", fill='black', font=font)
+    d.text((10, 100), f"شماره میز: {table_number}", fill='black', font=font)
 
     # Add items and counts
-    y_text = 100
+    y_text = 200
     for count, item in zip(counts, items):
         d.text((10, y_text), f"{item}: {count}", fill='black', font=font)
         y_text += 80
@@ -46,7 +47,7 @@ def print_image(image_path, printer_name):
 
 # Example usage
 counts = [3, 1, 2]
-items = ["Pizza", "Coke", "Salad"]
+items = ["پیتزا", "نوشابه", "سالاد"]
 table_number = 5
 output_path = 'table_order.png'
 create_image(counts, items, table_number, output_path)
