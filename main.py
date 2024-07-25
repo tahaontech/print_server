@@ -40,7 +40,7 @@ def print_image(image_path, printer_name):
         ], check=True)
         
         # Open the image with mspaint and print to the default printer
-        subprocess.run(['mspaint', '/pt', image_path], check=True)
+        subprocess.run(['mspaint', '/orientation', 'landscape', '/pt', image_path], check=True)
         
         print(f"Sent {image_path} to the printer {printer_name}")
     except subprocess.CalledProcessError as e:
@@ -109,7 +109,7 @@ items = [
 # counts = [3, 1, 2]
 # # items = ["پیتزا", "نوشابه", "سالاد"]
 table_number = 5
-# output_path = 'table_order.png'
+output_path = 'table_order.png'
 # create_image(counts, items, table_number, output_path)
 factorer(items, table_number)
 
