@@ -35,6 +35,7 @@ def print_image(image_path, printer_name):
         # Print the image using PrintUIEntry
         subprocess.run([
             'rundll32', 'printui.dll,PrintUIEntry',
+            '/orientation', 'landscape',
             '/y',  # Set the printer as default
             f'/n{printer_name}'
         ], check=True)
