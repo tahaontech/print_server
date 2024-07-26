@@ -99,10 +99,12 @@ def send_to_printer(filename):
         hJob = win32print.StartDocPrinter(hPrinter, 1, ("Receipt", None, "RAW"))
         win32print.StartPagePrinter(hPrinter)
 
-        # Read the content of the file
+        # Read the content of the file and print it line by line
         with open(filename, "r", encoding="utf-8") as file:
             for line in file:
-                win32print.WritePrinter(hPrinter, line.encode("utf-8"))
+                # Convert line to UTF-16LE encoding
+                line_utf16 = line.encode('utf-16le')
+                win32print.WritePrinter(hPrinter, line_utf16)
 
         # End the print job
         win32print.EndPagePrinter(hPrinter)
