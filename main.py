@@ -1,4 +1,6 @@
 import subprocess
+import win32print
+import win32api
 
 def generate_receipt(order, prices, tax_rate=0.07, filename="receipt.rpt"):
     """
@@ -76,7 +78,25 @@ def print_image(image_path, printer_name):
     except subprocess.CalledProcessError as e:
         print(f"Failed to print {image_path}: {e}")
 
+def send_to_printer(filename):
+    """
+    Sends the specified file to the default printer.
+    
+    Parameters:
+    filename (str): The name of the file to print.
+    
+    Returns:
+    None
+    """
+    printer_name = 'POS-80C' # win32print.GetDefaultPrinter()
+    win32api.ShellExecute(
+        0,
+        "print",
+        filename,
+        f'/d:"{printer_name}"',
+        ".",
+        0
+    )
 
+send_to_printer("receipt.rpt")
 
-# printer_name = 'POS-80C'  # Replace with your actual printer name
-# print_image(output_path, printer_name)
