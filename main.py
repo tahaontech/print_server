@@ -88,15 +88,28 @@ def send_to_printer(filename):
     Returns:
     None
     """
-    printer_name = 'POS-80C' # win32print.GetDefaultPrinter()
-    win32api.ShellExecute(
-        0,
-        "print",
-        filename,
-        f'/d:"{printer_name}"',
-        ".",
-        0
-    )
+    # Get the default printer
+    printer_name = win32print.GetDefaultPrinter()
+    
+    # Open the printer
+    hPrinter = win32print.OpenPrinter(printer_name)
+    
+    try:
+        # Start a print job
+        hJob = win32print.StartDocPrinter(hPrinter, 1, ("Receipt", None, "RAW"))
+        win32print.StartPagePrinter(hPrinter)
+
+        # Read the content of the file
+        with open(filename, "r", encoding="utf-8") as file:
+            for line in file:
+                win32print.WritePrinter(hPrinter, line.encode("utf-8"))
+
+        # End the print job
+        win32print.EndPagePrinter(hPrinter)
+        win32print.EndDocPrinter(hPrinter)
+    finally:
+        # Close the printer
+        win32print.ClosePrinter(hPrinter)
 
 send_to_printer("receipt.rpt")
 
