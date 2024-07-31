@@ -1,5 +1,10 @@
 ## setup
 
 ```shell
-pip install pywin32 pillow subprocess
+pip install python-escpos pillow jdatetime fastapi uvicorn
+```
+
+## run 
+```shell
+python main.py
 ```
