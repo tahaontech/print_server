@@ -1,12 +1,50 @@
+import json
 from escpos.printer import Network
 from PIL import Image, ImageDraw, ImageFont
+from fastapi.staticfiles import StaticFiles
 import jdatetime
 
 from fastapi import FastAPI
 from pydantic import BaseModel
-from typing import List, Tuple
+from typing import List
+import sqlite3
+from sqlite3 import Error
 
 app = FastAPI()
+
+# Database connection function
+def create_connection(db_file):
+    conn = None
+    try:
+        conn = sqlite3.connect(db_file)
+        return conn
+    except Error as e:
+        print(e)
+    return conn
+
+# Create a new SQLite database (or connect to an existing one)
+database = "example.db"
+conn = create_connection(database)
+
+# Create a table
+def create_table():
+    try:
+        sql_create_users_table = """ CREATE TABLE IF NOT EXISTS orders (
+                                        id INTEGER PRIMARY KEY,
+                                        products TEXT NOT NULL,
+                                        table_number INTEGER NOT NULL,
+                                        factor_number INTEGER NOT NULL,
+                                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+                                    ); """
+        c = conn.cursor()
+        c.execute(sql_create_users_table)
+    except Error as e:
+        print(e)
+
+create_table()
+
+app = FastAPI()
+
 
 # Define a Pydantic model for the response
 class Product(BaseModel):
@@ -16,9 +54,7 @@ class Product(BaseModel):
 
 class RequestModel(BaseModel):
     products: List[Product]
-    total: int
     table: int
-    factor: int
 
 class ResponseModel(BaseModel):
     message: str
@@ -28,6 +64,9 @@ class ResponseModel(BaseModel):
 PRINTER_IP = "192.168.0.103"
 PRINTER_PORT = 9100  # Default port for many network printers
 LOGO_PATH = "logo.bmp"  # Path to your logo file
+
+global factor_num
+factor_num = 0
 
 def draw_centered_text(draw, text, font, y_pos, image_width):
     text_width = draw.textbbox((0, 0), text, font=font)[2]
@@ -130,15 +169,33 @@ def print_bill(products, total, tableNumber,factorNumber, font_path="Vazirmatn-R
     except Exception as e:
         print(f"Failed to print bill: {e}")
 
+def insert_to_db(products, factor, table):
+    productsj = [{"name": x.name, "quantity": x.quantity, "price": x.price} for x in products]
+    products_string = json.dumps(productsj)
+    sql = ''' INSERT INTO orders(products, table_number, factor_number)
+                VALUES(?, ?, ?) '''
+    cur = conn.cursor()
+    
+    cur.execute(sql, (products_string, table, factor))
+    conn.commit()
+
 @app.post("/print", response_model=ResponseModel)
 async def get_data(request_data: RequestModel):
     products = [(x.name, x.quantity, x.price) for x in request_data.products]
+    total = 0
+    for x in request_data.products:
+        total += x.quantity * x.price
+    global factor_num 
+    
     try:
-        print_bill(products, request_data.total, request_data.table, request_data.factor)
-        return ResponseModel(status=True, message="printed successfully"), 200
+        insert_to_db(request_data.products, factor_num, request_data.table)
+        # print_bill(products, total, request_data.table, factor_num)
+        factor_num += 1
+        return ResponseModel(status=True, message="printed successfully")
     except:
-        return ResponseModel(status=False, message="error in printing"), 500
+        return ResponseModel(status=False, message="error in printing")
 
+app.mount("/", StaticFiles(directory="public", html=True), name="static")
 
 if __name__ == "__main__":
     import uvicorn
