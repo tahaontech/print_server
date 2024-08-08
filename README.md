@@ -1,7 +1,7 @@
 ## setup
 
 ```shell
-pip install python-escpos pillow jdatetime fastapi uvicorn
+pip install python-escpos pillow jdatetime fastapi uvicorn json requests
 ```
 
 ## run 

@@ -9,6 +9,32 @@ from pydantic import BaseModel
 from typing import List
 import sqlite3
 from sqlite3 import Error
+import socket
+
+
+
+# Replace with your printer's IP address
+PRINTER_IP = "192.168.0.103"
+PRINTER_PORT = 9100  # Default port for many network printers
+LOGO_PATH = "logo.bmp"  # Path to your logo file
+
+def get_local_ip():
+    try:
+        # Create a socket connection
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # Connect to an external address (e.g., Google DNS) to determine the local IP
+        s.connect(("8.8.8.8", 80))
+        # Get the local IP address
+        local_ip = s.getsockname()[0]
+    except Exception as e:
+        print(f"Error: {e}")
+        local_ip = None
+    finally:
+        s.close()
+    
+    return local_ip
+
+print("Server address : http://" + get_local_ip() + ":8000")
 
 app = FastAPI()
 
@@ -60,13 +86,10 @@ class ResponseModel(BaseModel):
     message: str
     status: bool
 
-# Replace with your printer's IP address
-PRINTER_IP = "192.168.0.103"
-PRINTER_PORT = 9100  # Default port for many network printers
-LOGO_PATH = "logo.bmp"  # Path to your logo file
+
 
 global factor_num
-factor_num = 0
+factor_num = 1
 
 def draw_centered_text(draw, text, font, y_pos, image_width):
     text_width = draw.textbbox((0, 0), text, font=font)[2]
@@ -76,7 +99,7 @@ def draw_centered_text(draw, text, font, y_pos, image_width):
 def create_receipt_image(products, total,tableNumber,factorNumber, font, fontb):
 
     # Calculate the height of the image based on the number of products
-    line_height = font.getbbox("A")[1] + 40  # Height of each line of text with padding
+    line_height = font.getbbox("A")[1] + 50  # Height of each line of text with padding
     header_height = 2 * line_height  # For the header and separator lines
     footer_height = 6 * line_height  # For the total and thank you lines
     product_lines_height = len(products) * line_height * 2 # Height for all product lines
@@ -121,7 +144,7 @@ def create_receipt_image(products, total,tableNumber,factorNumber, font, fontb):
     draw_centered_text(d, f"جمع کل:                {total:.2f}", font, y_position, img.width)
 
     y_position += line_height
-    draw_centered_text(d, "🍹 در هُنَر لَحظه ای شآدی بنوش", font, y_position, img.width)
+    draw_centered_text(d, "🍹 در هُنَر لَحظه ای شآدی بنوش", fontb, y_position, img.width)
 
     # return the image
     return img
@@ -130,44 +153,42 @@ def create_receipt_image(products, total,tableNumber,factorNumber, font, fontb):
 
 
 def print_bill(products, total, tableNumber,factorNumber, font_path="Vazirmatn-Regular.ttf", fontbold_path="Vazirmatn-Bold.ttf"):
-    try:
-        font = ImageFont.truetype(font_path, 24)
-        fontb = ImageFont.truetype(fontbold_path, 32)
-        # Connect to the network printer
-        p = Network(PRINTER_IP, port=PRINTER_PORT)
+    
+    font = ImageFont.truetype(fontbold_path, 28)
+    fontb = ImageFont.truetype(fontbold_path, 32)
+    # Connect to the network printer
+    p = Network(PRINTER_IP, port=PRINTER_PORT)
 
-        p.set(align='center', bold=True)
+    p.set(align='center', bold=True)
         
-        img = create_receipt_image(products, total, tableNumber,factorNumber, font, fontb)
+    img = create_receipt_image(products, total, tableNumber,factorNumber, font, fontb)
         
-        # Convert the image to grayscale and print
-        img = img.convert("L")
-        p.image(img)
+    # Convert the image to grayscale and print
+    img = img.convert("L")
+    p.image(img)
 
-        p.text("\n")
+    p.text("\n")
 
-        # Print the logo
-        logo = Image.open(LOGO_PATH)
-        p.image(logo)
-        p.text("\n")
+    # Print the logo
+    logo = Image.open(LOGO_PATH)
+    p.image(logo)
+    p.text("\n")
 
-        img = Image.new('RGB', (384, 50), color='white')
-        d = ImageDraw.Draw(img)
+    img = Image.new('RGB', (384, 50), color='white')
+    d = ImageDraw.Draw(img)
 
-        draw_centered_text(d, "کافه رستوران هنر", font, 10, img.width)
+    draw_centered_text(d, "کافه رستوران هنر", font, 10, img.width)
 
-        img = img.convert("L")
-        p.image(img)
+    img = img.convert("L")
+    p.image(img)
 
-        p.text("\n")
+    p.text("\n")
         
-        # Cut the paper
-        p.cut()
+    # Cut the paper
+    p.cut()
         
-        print("Bill printed successfully")
+    print("Bill printed successfully")
         
-    except Exception as e:
-        print(f"Failed to print bill: {e}")
 
 def insert_to_db(products, factor, table):
     productsj = [{"name": x.name, "quantity": x.quantity, "price": x.price} for x in products]
@@ -189,7 +210,7 @@ async def get_data(request_data: RequestModel):
     
     try:
         insert_to_db(request_data.products, factor_num, request_data.table)
-        # print_bill(products, total, request_data.table, factor_num)
+        print_bill(products, total, request_data.table, factor_num)
         factor_num += 1
         return ResponseModel(status=True, message="printed successfully")
     except:
@@ -198,6 +219,7 @@ async def get_data(request_data: RequestModel):
 app.mount("/", StaticFiles(directory="public", html=True), name="static")
 
 if __name__ == "__main__":
+    # print_bill([('لاته', 10, 10), ('اسپرسو', 1, 10000)], 100, 8, 1)
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
