@@ -11,6 +11,9 @@ import sqlite3
 from sqlite3 import Error
 import socket
 
+from bidi.algorithm import get_display
+import arabic_reshaper
+
 
 
 # Replace with your printer's IP address
@@ -91,10 +94,17 @@ class ResponseModel(BaseModel):
 global factor_num
 factor_num = 1
 
+def reshape_persian_text(text):
+        reshaped_text = arabic_reshaper.reshape(text)
+        return get_display(reshaped_text)
+
+
+
 def draw_centered_text(draw, text, font, y_pos, image_width):
-    text_width = draw.textbbox((0, 0), text, font=font)[2]
+    reshaped_text = reshape_persian_text(text)
+    text_width = draw.textbbox((0, 0), reshaped_text, font=font)[2]
     x_pos = (image_width - text_width) / 2
-    draw.text((x_pos, y_pos), text, font=font, fill="black")
+    draw.text((x_pos, y_pos), reshaped_text, font=font, fill="black")
 
 def create_receipt_image(products, total,tableNumber,factorNumber, font, fontb):
 
@@ -220,6 +230,10 @@ app.mount("/", StaticFiles(directory="public", html=True), name="static")
 
 if __name__ == "__main__":
     # print_bill([('لاته', 10, 10), ('اسپرسو', 1, 10000)], 100, 8, 1)
+    # font = ImageFont.truetype("Vazirmatn-Regular.ttf", 28)
+    # fontb = ImageFont.truetype("Vazirmatn-Bold.ttf", 32)
+    # img = create_receipt_image([('لاته', 10, 10), ('اسپرسو', 1, 10000)], 100, 8, 1, font, fontb)
+    # img.show()
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
