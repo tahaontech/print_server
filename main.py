@@ -21,6 +21,9 @@ PRINTER_IP = "192.168.0.103"
 PRINTER_PORT = 9100  # Default port for many network printers
 LOGO_PATH = "logo.bmp"  # Path to your logo file
 
+# Connect to the network printer
+printer = Network(PRINTER_IP, port=PRINTER_PORT)
+
 def get_local_ip():
     try:
         # Create a socket connection
@@ -162,12 +165,11 @@ def create_receipt_image(products, total,tableNumber,factorNumber, font, fontb):
 
 
 
-def print_bill(products, total, tableNumber,factorNumber, font_path="Vazirmatn-Regular.ttf", fontbold_path="Vazirmatn-Bold.ttf"):
+def print_bill(p, products, total, tableNumber,factorNumber, font_path="Vazirmatn-Regular.ttf", fontbold_path="Vazirmatn-Bold.ttf"):
     
     font = ImageFont.truetype(fontbold_path, 28)
     fontb = ImageFont.truetype(fontbold_path, 32)
-    # Connect to the network printer
-    p = Network(PRINTER_IP, port=PRINTER_PORT)
+    
 
     p.set(align='center', bold=True)
         
@@ -220,7 +222,7 @@ async def get_data(request_data: RequestModel):
     
     try:
         insert_to_db(request_data.products, factor_num, request_data.table)
-        print_bill(products, total, request_data.table, factor_num)
+        print_bill(printer, products, total, request_data.table, factor_num)
         factor_num += 1
         return ResponseModel(status=True, message="printed successfully")
     except:
