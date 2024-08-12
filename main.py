@@ -4,7 +4,7 @@ from PIL import Image, ImageDraw, ImageFont
 from fastapi.staticfiles import StaticFiles
 import jdatetime
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List
 import sqlite3
@@ -22,8 +22,20 @@ PRINTER_PORT = 9100  # Default port for many network printers
 LOGO_PATH = "logo.bmp"  # Path to your logo file
 
 # Connect to the network printer
-printer = Network(PRINTER_IP, port=PRINTER_PORT)
+printer = Network(PRINTER_IP, port=PRINTER_PORT, timeout=120)
 
+def _get_printer():
+    print(printer.is_online())
+    if printer.is_online():
+        return printer
+    else:
+        global printer
+        printer = Network(PRINTER_IP, port=PRINTER_PORT, timeout=120)
+        if printer.is_online():
+            return printer
+        else:
+            return None
+    
 def get_local_ip():
     try:
         # Create a socket connection
@@ -222,15 +234,19 @@ async def get_data(request_data: RequestModel):
     
     try:
         insert_to_db(request_data.products, factor_num, request_data.table)
+        p = _get_printer()
+        if not p:
+            raise HTTPException(status_code=404, detail="printer is not connected")
         print_bill(printer, products, total, request_data.table, factor_num)
         factor_num += 1
         return ResponseModel(status=True, message="printed successfully")
-    except:
-        return ResponseModel(status=False, message="error in printing")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"error -> {e}")
 
 app.mount("/", StaticFiles(directory="public", html=True), name="static")
 
 if __name__ == "__main__":
+    _get_printer()
     # print_bill([('لاته', 10, 10), ('اسپرسو', 1, 10000)], 100, 8, 1)
     # font = ImageFont.truetype("Vazirmatn-Regular.ttf", 28)
     # fontb = ImageFont.truetype("Vazirmatn-Bold.ttf", 32)
