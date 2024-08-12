@@ -79846,12 +79846,12 @@ s=1
 break}}else throw A.e(A.cr("Failed to fetch menu items"))
 case 1:return A.S(q,r)}})
 return A.T($async$vu,r)},
-a_n(a){var s,r=this.y
-if(r.ai(a)){s=r.h(0,a)
+a_n(a){var s,r=this,q=r.y
+if(q.ai(a)){s=q.h(0,a)
 s.toString
-r.n(0,a,s+1)}else r.n(0,a,1)
-A.tS(r)
-this.aj(new A.adU(this,a))},
+q.n(0,a,s+1)
+r.aj(new A.adU(r,a))}else{q.n(0,a,1)
+r.r=r.r+a.b}A.tS(q)},
 ac3(a){var s,r,q,p=this,o=null,n={}
 n.a=a
 s=p.c
@@ -79869,9 +79869,8 @@ A.adV.prototype={
 $1(a){return J.c(J.kC(a,"CatId"),this.a.f)},
 $S:63}
 A.adU.prototype={
-$0(){var s=this.a,r=s.r,q=this.b,p=s.y.h(0,q)
-p.toString
-s.r=r+q.b*p},
+$0(){var s=this.a
+s.r=s.r+this.b.b},
 $S:0}
 A.adX.prototype={
 $2(a,b){var s,r=null,q=this.a,p=q.a,o=new A.b0(p,A.j(p).i("b0<1>")).cm(0,b)
