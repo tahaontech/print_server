@@ -14,6 +14,8 @@ import socket
 from bidi.algorithm import get_display
 import arabic_reshaper
 
+import os
+import sys
 
 
 # Replace with your printer's IP address
@@ -24,17 +26,18 @@ LOGO_PATH = "logo.bmp"  # Path to your logo file
 # Connect to the network printer
 printer = Network(PRINTER_IP, port=PRINTER_PORT, timeout=120)
 
+def restart_process():
+    # The executable is the Python interpreter
+    executable = sys.executable
+    # Re-run the current script with the same arguments
+    os.execv(executable, ['python'] + sys.argv)
+
 def _get_printer():
     print(printer.is_online())
     if printer.is_online():
         return printer
     else:
-        global printer
-        printer = Network(PRINTER_IP, port=PRINTER_PORT, timeout=120)
-        if printer.is_online():
-            return printer
-        else:
-            return None
+        restart_process()
     
 def get_local_ip():
     try:
