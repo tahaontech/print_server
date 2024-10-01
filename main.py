@@ -74,6 +74,7 @@ def create_connection():
         print(f"Error: {e}")
     return connection
 
+create_connection()
 # Create a new SQLite database (or connect to an existing one)
 # conn = create_connection()
 
@@ -232,7 +233,7 @@ def insert_to_db(products, table, total):
 
             # SQL Insert query
             insert_query = """
-            INSERT INTO table_order (table_number, order, price) 
+            INSERT INTO table_order (table_number, `order`, price) 
             VALUES (%s, %s, %s)
             """
 
@@ -246,7 +247,7 @@ def insert_to_db(products, table, total):
 
             # SQL Insert query
             insertm_query = """
-            INSERT INTO order (name, price, countt, table_num) 
+            INSERT INTO `order` (name, price, countt, table_num) 
             VALUES (%s, %s, %s, %s)
             """
 
@@ -277,15 +278,15 @@ async def get_data(request_data: RequestModel):
     global factor_num 
     
     try:
-        # insert to db
-        insert_to_db(request_data.products, request_data.table, total)
+        
         p = _get_printer()
         if not p:
             # Restart the server
             restart_server()
             raise HTTPException(status_code=404, detail="printer is not connected")
         print_bill(printer, products, total, request_data.table, factor_num)
-        
+        # insert to db
+        insert_to_db(request_data.products, request_data.table, total)
         factor_num += 1
         return ResponseModel(status=True, message="printed successfully")
     except Exception as e:
