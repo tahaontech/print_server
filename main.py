@@ -227,7 +227,7 @@ def insert_to_db(products, table, total):
     date_format = "%m/%d/%Y %H:%M:%S"
     persian_date = current_persian_datetime.strftime(date_format)
     productsj = [{"name": x.name, "quantity": x.quantity, "price": x.price} for x in products]
-    products_string = json.dumps(productsj)
+    products_string = json.dumps(productsj, ensure_ascii=False)
     try:
         # Establish the connection
         connection = create_connection()
