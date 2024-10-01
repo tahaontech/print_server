@@ -10,6 +10,8 @@ from typing import List
 import sqlite3
 from sqlite3 import Error
 import socket
+import mysql.connector
+from mysql.connector import Error
 
 from bidi.algorithm import get_display
 import arabic_reshaper
@@ -59,35 +61,38 @@ print("Server address : http://" + get_local_ip() + ":8000")
 app = FastAPI()
 
 # Database connection function
-def create_connection(db_file):
-    conn = None
+def create_connection():
+    connection = None
     try:
-        conn = sqlite3.connect(db_file)
-        return conn
+        connection = mysql.connector.connect(
+            host='localhost',          # Replace with your MySQL host
+            database='menu',   # Replace with your database name
+            user='root',       # Replace with your MySQL username
+            password=''    # Replace with your MySQL password
+        )
     except Error as e:
-        print(e)
-    return conn
+        print(f"Error: {e}")
+    return connection
 
 # Create a new SQLite database (or connect to an existing one)
-database = "example.db"
-conn = create_connection(database)
+# conn = create_connection()
 
 # Create a table
-def create_table():
-    try:
-        sql_create_users_table = """ CREATE TABLE IF NOT EXISTS orders (
-                                        id INTEGER PRIMARY KEY,
-                                        products TEXT NOT NULL,
-                                        table_number INTEGER NOT NULL,
-                                        factor_number INTEGER NOT NULL,
-                                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
-                                    ); """
-        c = conn.cursor()
-        c.execute(sql_create_users_table)
-    except Error as e:
-        print(e)
+# def create_table():
+#     try:
+#         sql_create_users_table = """ CREATE TABLE IF NOT EXISTS ordersss (
+#                                         id INTEGER PRIMARY KEY,
+#                                         products TEXT NOT NULL,
+#                                         table_number INTEGER NOT NULL,
+#                                         factor_number INTEGER NOT NULL,
+#                                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+#                                     ); """
+#         c = conn.cursor()
+#         c.execute(sql_create_users_table)
+#     except Error as e:
+#         print(e)
 
-create_table()
+# create_table()
 
 app = FastAPI()
 
@@ -216,15 +221,52 @@ def print_bill(p, products, total, tableNumber,factorNumber, font_path="Vazirmat
     print("Bill printed successfully")
         
 
-def insert_to_db(products, factor, table):
+def insert_to_db(products, table, total):
     productsj = [{"name": x.name, "quantity": x.quantity, "price": x.price} for x in products]
     products_string = json.dumps(productsj)
-    sql = ''' INSERT INTO orders(products, table_number, factor_number)
-                VALUES(?, ?, ?) '''
-    cur = conn.cursor()
-    
-    cur.execute(sql, (products_string, table, factor))
-    conn.commit()
+    try:
+        # Establish the connection
+        connection = create_connection()
+        if connection.is_connected():
+            cursor = connection.cursor()
+
+            # SQL Insert query
+            insert_query = """
+            INSERT INTO table_order (table_number, order, price) 
+            VALUES (%s, %s, %s)
+            """
+
+            # Execute the query
+            cursor.execute(insert_query, (table, products_string, total))
+
+            # Commit the transaction
+            connection.commit()
+
+
+
+            # SQL Insert query
+            insertm_query = """
+            INSERT INTO order (name, price, countt, table_num) 
+            VALUES (%s, %s, %s, %s)
+            """
+
+            # Prepare the data for insertion
+            records = [(product.name, product.price, product.quantity, table) for product in products]
+
+            # Execute the query for multiple records
+            cursor.executemany(insertm_query, records)
+
+            # Commit the transaction
+            connection.commit()
+
+    except Error as e:
+        raise HTTPException(status_code=500, detail=f"Error: {e}")
+
+    finally:
+        # Close the connection
+        if connection and connection.is_connected():
+            cursor.close()
+            connection.close()
 
 @app.post("/print", response_model=ResponseModel)
 async def get_data(request_data: RequestModel):
@@ -235,13 +277,15 @@ async def get_data(request_data: RequestModel):
     global factor_num 
     
     try:
-        insert_to_db(request_data.products, factor_num, request_data.table)
+        # insert to db
+        insert_to_db(request_data.products, request_data.table, total)
         p = _get_printer()
         if not p:
             # Restart the server
             restart_server()
             raise HTTPException(status_code=404, detail="printer is not connected")
         print_bill(printer, products, total, request_data.table, factor_num)
+        
         factor_num += 1
         return ResponseModel(status=True, message="printed successfully")
     except Exception as e:
