@@ -223,6 +223,9 @@ def print_bill(p, products, total, tableNumber,factorNumber, font_path="Vazirmat
         
 
 def insert_to_db(products, table, total):
+    current_persian_datetime = jdatetime.datetime.now()
+    date_format = "%m/%d/%Y %H:%M:%S"
+    persian_date = current_persian_datetime.strftime(date_format)
     productsj = [{"name": x.name, "quantity": x.quantity, "price": x.price} for x in products]
     products_string = json.dumps(productsj)
     try:
@@ -233,12 +236,12 @@ def insert_to_db(products, table, total):
 
             # SQL Insert query
             insert_query = """
-            INSERT INTO table_order (table_number, `order`, price) 
+            INSERT INTO table_order (table_number, `order`, price, ftime) 
             VALUES (%s, %s, %s)
             """
 
             # Execute the query
-            cursor.execute(insert_query, (table, products_string, total))
+            cursor.execute(insert_query, (table, products_string, total, persian_date))
 
             # Commit the transaction
             connection.commit()
@@ -247,12 +250,12 @@ def insert_to_db(products, table, total):
 
             # SQL Insert query
             insertm_query = """
-            INSERT INTO `order` (name, price, countt, table_num) 
+            INSERT INTO `order` (name, price, countt, table_num, ftime) 
             VALUES (%s, %s, %s, %s)
             """
 
             # Prepare the data for insertion
-            records = [(product.name, product.price, product.quantity, table) for product in products]
+            records = [(product.name, product.price, product.quantity, table, persian_date) for product in products]
 
             # Execute the query for multiple records
             cursor.executemany(insertm_query, records)
